@@ -1,3 +1,5 @@
+"use client";
+
 import FieldInput from "@/components/organisms/FieldInput";
 import { Button } from "@/components/ui/button";
 import {
