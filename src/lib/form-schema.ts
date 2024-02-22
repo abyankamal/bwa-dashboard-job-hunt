@@ -54,3 +54,11 @@ export const overviewFormSchema = z.object({
     .nonempty({ message: "Tech Stack At Least 1 Data" }),
   description: z.string({ required_error: "Description is required" }),
 });
+
+export const socialMediaFormSchema = z.object({
+  facebook: z.string({ required_error: "Facebook is required" }),
+  instagram: z.string({ required_error: "Instagram is required" }),
+  linkedin: z.string({ required_error: "Linkedin is required" }),
+  twitter: z.string({ required_error: "Twitter is required" }),
+  youtube: z.string({ required_error: "Youtube is required" }),
+});
