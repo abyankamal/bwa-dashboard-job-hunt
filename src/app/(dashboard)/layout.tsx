@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Epilogue } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import Sidebar from "@/components/layouts/Sidebar";
 import Header from "@/components/layouts/Header";
 
@@ -28,7 +28,9 @@ export default function RootLayout({
                 </div>
                 <div className="col-span-3 overflow-auto lg:col-span-8 lg:border-l w-[82%]">
                   <div className="px-6 py-8 lg:py-8">
-                    <div><Header /></div>
+                    <div>
+                      <Header />
+                    </div>
                     {children}
                   </div>
                 </div>
