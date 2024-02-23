@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client/edge";
-let prisma = new PrismaClient();
+import { PrismaClient } from "@prisma/client";
+
+let prisma: PrismaClient;
 
 declare const globalThis: {
   prisma: PrismaClient;
@@ -8,6 +9,10 @@ declare const globalThis: {
 if (process.env.NODE_ENV === "production") {
   prisma = new PrismaClient();
 } else {
+  if (!globalThis.prisma) {
+    globalThis.prisma = new PrismaClient();
+  }
+
   prisma = globalThis.prisma;
 }
 
