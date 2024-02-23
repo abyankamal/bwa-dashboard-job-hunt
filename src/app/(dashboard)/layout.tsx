@@ -7,6 +7,7 @@ import NextAuthProvider from "@/context/NextAuthProvider";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "../api/auth/[...nextauth]/route";
+import { Toaster } from "@/components/ui/toaster";
 
 const epilogue = Epilogue({ subsets: ["latin"] });
 
@@ -49,6 +50,7 @@ export default async function RootLayout({
             </div>
           </main>
         </NextAuthProvider>
+        <Toaster />
       </body>
     </html>
   );

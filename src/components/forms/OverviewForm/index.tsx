@@ -1,12 +1,8 @@
 "use client";
 
 import TitleForm from "@/components/atoms/TitleForm";
-import CKEditor from "@/components/organisms/CKEditor";
 import CustomUpload from "@/components/organisms/CustomUpload";
 import FieldInput from "@/components/organisms/FieldInput";
-import InputSkills from "@/components/organisms/inputSkills";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -31,24 +27,89 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { EMPLOYEE_OPTIONS, LOCATION_OPTIONS, optionType } from "@/constants";
 import { overviewFormSchema } from "@/lib/form-schema";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { FC, useEffect, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { cn, fetcher } from "@/lib/utils";
+import CKEditor from "@/components/organisms/CKEditor";
+import useSWR from "swr";
+import { Companyoverview, Industry } from "@prisma/client";
+import { supabaseUpdateFile, supabaseUploadFile } from "@/lib/supabase";
+import { useSession } from "next-auth/react";
+import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import InputSkills from "@/components/organisms/inputSkills";
 
-interface OverviewFormProps {}
+interface OverviewFormProps {
+  detail: Companyoverview | undefined;
+}
 
-const OverviewForm: FC<OverviewFormProps> = ({}) => {
+const OverviewForm: FC<OverviewFormProps> = ({ detail }) => {
   const [editorLoaded, setEditorLoaded] = useState<boolean>(false);
+
+  const { data: session } = useSession();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const { data } = useSWR<Industry[]>("/api/company/industry", fetcher);
+
   const form = useForm<z.infer<typeof overviewFormSchema>>({
     resolver: zodResolver(overviewFormSchema),
+    defaultValues: {
+      dateFounded: detail?.dateFounded,
+      description: detail?.description,
+      employee: detail?.employee,
+      image: detail?.image,
+      industry: detail?.industry,
+      location: detail?.location,
+      name: detail?.name,
+      techStack: detail?.techStack,
+      website: detail?.website,
+    },
   });
 
-  const onSubmit = (val: z.infer<typeof overviewFormSchema>) => {
-    console.log(val);
+  const onSubmit = async (val: z.infer<typeof overviewFormSchema>) => {
+    try {
+      let filename = "";
+
+      if (typeof val.image === "object") {
+        const uploadImg = await supabaseUploadFile(val.image, "company");
+        filename = uploadImg.filename;
+      } else {
+        filename = val.image;
+      }
+
+      const body = {
+        ...val,
+        image: filename,
+        companyId: session?.user.id,
+      };
+
+      await fetch("/api/company/overview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      toast({
+        title: "Success",
+        description: "Edit profile success",
+      });
+
+      router.refresh();
+    } catch (error) {
+      await toast({
+        title: "Error",
+        description: "Please try again",
+      });
+
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -60,7 +121,7 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
       <div className="my-5">
         <TitleForm
           title="Basic Information"
-          subtitle="This Is Company Thay You Can Update Anytime"
+          subtitle="This is company information that you can update anytime"
         />
       </div>
 
@@ -70,19 +131,19 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
           <FieldInput
             title="Company Logo"
-            subtitle="This Image Will Be Shown Publicy As Company Logo"
+            subtitle="This image will be shown publicly as company logo."
           >
             <CustomUpload form={form} name="image" />
           </FieldInput>
 
           <FieldInput
             title="Company Details"
-            subtitle="Introduce Your Company Code Info Quickly To Fill Up Company Details"
+            subtitle="Introduce your company core info quickly to users by fill up company details"
           >
             <div className="space-y-5">
               <FormField
-                name="name"
                 control={form.control}
+                name="name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company Name</FormLabel>
@@ -98,15 +159,15 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
                 )}
               />
               <FormField
-                name="website"
                 control={form.control}
+                name="website"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Website</FormLabel>
                     <FormControl>
                       <Input
                         className="w-[450px]"
-                        placeholder="www.twitter.com"
+                        placeholder="https://twitter.com"
                         {...field}
                       />
                     </FormControl>
@@ -114,9 +175,10 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
                   </FormItem>
                 )}
               />
+
               <FormField
-                name="location"
                 control={form.control}
+                name="location"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Location</FormLabel>
@@ -126,7 +188,7 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
                     >
                       <FormControl>
                         <SelectTrigger className="w-[450px]">
-                          <SelectValue placeholder="Apaan Tuh" />
+                          <SelectValue placeholder="Location" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -144,8 +206,8 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
 
               <div className="w-[450px] grid grid-cols-2 gap-4">
                 <FormField
-                  name="employee"
                   control={form.control}
+                  name="employee"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Employee</FormLabel>
@@ -173,8 +235,8 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
                   )}
                 />
                 <FormField
-                  name="industry"
                   control={form.control}
+                  name="industry"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Industry</FormLabel>
@@ -184,17 +246,15 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Media" />
+                            <SelectValue placeholder="Industry" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {LOCATION_OPTIONS.map(
-                            (item: optionType, i: number) => (
-                              <SelectItem key={item.id + i} value={item.id}>
-                                {item.label}
-                              </SelectItem>
-                            )
-                          )}
+                          {data?.map((item: Industry) => (
+                            <SelectItem key={item.id} value={item.name}>
+                              {item.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -244,12 +304,18 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
                   </FormItem>
                 )}
               />
-              <InputSkills form={form} name="techStack" label="Add Tech" />
+
+              <InputSkills
+                form={form}
+                name="techStack"
+                label="Add Tech Stack"
+              />
             </div>
           </FieldInput>
+
           <FieldInput
             title="About Company"
-            subtitle="Brief Description For Your Company, URLs Are Hyperlinked"
+            subtitle="Brief description for your company. URLs are hyperlinked."
           >
             <CKEditor
               form={form}
@@ -257,6 +323,7 @@ const OverviewForm: FC<OverviewFormProps> = ({}) => {
               editorLoaded={editorLoaded}
             />
           </FieldInput>
+
           <div className="flex justify-end">
             <Button size="lg">Save Changes</Button>
           </div>
